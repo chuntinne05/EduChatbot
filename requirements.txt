@@ -1,0 +1,44 @@
+faiss-cpu==1.12.0
+requests==2.31.0
+pgvector
+pydantic
+
+# Database
+psycopg2-binary==2.9.9
+dotenv
+psycopg2
+sqlalchemy
+alembic==1.12.1
+
+# AWS S3
+boto3
+botocore==1.34.0
+
+# NLP & ML
+spacy==3.7.2
+transformers==4.36.2
+torch
+sentence-transformers==2.2.2
+numpy==1.26.4
+
+# Image Processing
+Pillow==10.1.0
+opencv-python==4.8.1.78
+pytesseract==0.3.10
+easyocr==1.7.0
+
+
+# Text Processing
+PyPDF2==3.0.1
+python-docx==1.1.0
+
+# Utilities
+pydantic==2.5.2
+python-dotenv==1.0.0
+tqdm==4.66.1
+loguru==0.7.2
+uuid==1.30
+
+# API Framework (optional - for testing)
+fastapi==0.104.1
+uvicorn==0.24.0
