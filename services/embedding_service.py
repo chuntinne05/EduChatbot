@@ -67,7 +67,7 @@ class TextEmbeddingService:
             logger.error(f"Error loading model: {e}")
             raise
     
-    def preprocess_text(self, text: str, category: Optional[str] = None) -> str:
+    def preprocess_text(self, text: str, category: Optional[str] = None, chunk: Optional[TextChunk] = None) -> str:
         """
         Preprocess text trước khi tạo embedding
         
@@ -83,19 +83,25 @@ class TextEmbeddingService:
         
         # Clean text
         text = text.strip().replace('\n', ' ').replace('\r', ' ')
-        text = ' '.join(text.split())  # Remove multiple spaces
+        text = ' '.join(text.split()) 
         
         # Add category context for better embedding
         if category and "e5" in self.model_name.lower():
             # E5 models work better with instruction prefix
             category_prefix = {
-                'tuyen_sinh': 'passage: Thông tin tuyển sinh đại học: ',
+                'tuyen_sinh': 'passage: Tuyển sinh: ',
                 'chuong_trinh': 'passage: Chương trình đào tạo: ',
-                'co_so_vat_chat': 'passage: Cơ sở vật chất trường học: ',
-                'sinh_vien': 'passage: Thông tin sinh viên: ',
-                'general': 'passage: Thông tin giáo dục: '
+                'co_so_vat_chat': 'passage: Cơ sở vật chất: ',
+                'sinh_vien': 'passage: Hoạt động sinh viên: ',
+                'thong_tin_truong': 'passage: Thông tin trường: ',
+                'nganh_hoc': 'passage: Ngành học: ',
+                'hoc_phi': 'passage: Học phí: ',
+                'chinh_sach': 'passage: Chính sách: ',
+                'khac': 'passage: Giáo dục khác: '
             }
             prefix = category_prefix.get(category, category_prefix['general'])
+            if chunk and chunk.school:
+                prefix = f"{prefix}{chunk.school}: "
             text = prefix + text
         
         # Truncate if too long (most models have 512 token limit)
@@ -249,7 +255,8 @@ class TextEmbeddingService:
                     for chunk in batch_chunks:
                         preprocessed_text = self.preprocess_text(
                             chunk.content, 
-                            chunk.category
+                            chunk.category,
+                            chunk
                         )
                         texts.append(preprocessed_text)
                     
