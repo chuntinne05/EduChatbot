@@ -1,0 +1,18 @@
+{
+  "cross_modal_linking": {
+    "pairs_found": 36,
+    "links_saved": 36,
+    "processing_time": 0.20505690574645996,
+    "total_time": 0.20675992965698242,
+    "statistics": {
+      "total_links": 36,
+      "texts_with_images": 9,
+      "images_with_texts": 4,
+      "average_similarity": 0.7969861591855684,
+      "links_by_category": {
+        "chính sách": 32,
+        "tuyển sinh": 4
+      }
+    }
+  }
+}

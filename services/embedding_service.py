@@ -97,9 +97,10 @@ class TextEmbeddingService:
                 'nganh_hoc': 'passage: Ngành học: ',
                 'hoc_phi': 'passage: Học phí: ',
                 'chinh_sach': 'passage: Chính sách: ',
-                'khac': 'passage: Giáo dục khác: '
+                'khac': 'passage: Giáo dục khác: ',
+                'general': 'passage: Chung: '
             }
-            prefix = category_prefix.get(category, category_prefix['general'])
+            prefix = category_prefix.get(category.lower(), category_prefix['general'])
             if chunk and chunk.school:
                 prefix = f"{prefix}{chunk.school}: "
             text = prefix + text
