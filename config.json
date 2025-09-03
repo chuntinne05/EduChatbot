@@ -1,0 +1,33 @@
+{
+  "database": {
+    "url": "postgresql://trinhtrantrungtin@localhost/admission_chatbot"
+  },
+  "models": {
+    "text_model": "intfloat/multilingual-e5-base",
+    "clip_model": "openai/clip-vit-base-patch32"
+  },
+  "processing": {
+    "text_batch_size": 32,
+    "image_batch_size": 16,
+    "text_limit": 1000,
+    "image_limit": 500,
+    "linking_limit": 1000
+  },
+  "linking": {
+    "similarity_threshold": 0.3,
+    "metadata_weight": 0.4,
+    "semantic_weight": 0.6,
+    "max_links_per_text": 5,
+    "max_links_per_image": 10
+  },
+  "steps": {
+    "text_embedding": true,
+    "image_embedding": true,
+    "cross_modal_linking": true
+  },
+  "aws": {
+    "access_key": null,
+    "secret_key": null,
+    "bucket": null
+  }
+}

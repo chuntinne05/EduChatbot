@@ -155,10 +155,11 @@ class CrossModalLinkingService:
         
         # Semantic similarity
         semantic_sim = 0.0
-        if text_chunk.embedding and image.embedding:
+        if text_chunk.embedding is not None and image.embedding is not None:
             text_emb = np.array(text_chunk.embedding)
             img_emb = np.array(image.embedding)
-            semantic_sim = self.calculate_semantic_similarity(text_emb, img_emb)
+            if text_emb.size > 0 and img_emb.size > 0:
+                semantic_sim = self.calculate_semantic_similarity(text_emb, img_emb)
         
         # Combined score
         combined_score = (
