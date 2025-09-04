@@ -7,7 +7,7 @@ from sqlalchemy import Column, String, Integer, Text, JSON, ARRAY, Float, DateTi
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
-from pgvector.sqlalchemy import Vector
+# from pgvector.sqlalchemy import Vector
 import uuid
 from datetime import datetime, timezone
 
@@ -43,7 +43,7 @@ class TextChunk(Base):
     entities = Column(JSON, nullable=True)  # {"schools": [...], "majors": [...], "locations": [...]}
     
     # Embedding vector (sử dụng pgvector extension)
-    embedding = Column(Vector(768), nullable=True)  # 768 cho sentence-transformers
+    # embedding = Column(Vector(768), nullable=True) comment to use Qdrant
     
     # Timestamps
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
@@ -81,7 +81,7 @@ class Image(Base):
     file_format = Column(String, nullable=True)  # jpg, png, etc.
     
     # Embedding vector
-    embedding = Column(Vector(768), nullable=True)
+    # embedding = Column(Vector(768), nullable=True) same 
     
     # Timestamps
     created_at = Column(DateTime, default=datetime.now(timezone.utc))

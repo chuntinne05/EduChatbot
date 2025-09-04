@@ -23,6 +23,9 @@ class Settings:
     DB_NAME: str = os.getenv("DB_NAME", "admission_chatbot")
     DB_USER: str = os.getenv("DB_USER", "username")
     DB_PASSWORD: str = os.getenv("DB_PASSWORD", "password")
+
+    # QDRANT 
+    QDRANT_URL: str = os.getenv("QDRANT_URL", "http://localhost:6333")
     
     # AWS Configuration
     AWS_ACCESS_KEY_ID: str = os.getenv("AWS_ACCESS_KEY_ID", "")
