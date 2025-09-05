@@ -6,8 +6,6 @@ Sử dụng PhoBERT và multilingual-e5 models
 import os
 import logging
 import asyncio
-from qdrant_client import QdrantClient
-from qdrant_client.http.models import Distance, VectorParams, PointStruct, Filter, FieldCondition, MatchValue
 from typing import List, Dict, Optional, Tuple
 import numpy as np
 from sentence_transformers import SentenceTransformer
@@ -45,26 +43,8 @@ class TextEmbeddingService:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')        
         self.engine = create_engine(db_url)
         self._load_model()
-
-        # Qdrant Client for vector storage
-        self.qdrant_client = QdrantClient(
-            url=settings.QDRANT_URL,
-            api_key=settings.QDRANT_API_KEY
-        )
-        self.collection_name = "text_chunks"
-
-        self._create_qdrant_collection()
         
-        logger.info(f"Text Embedding Service initialized with {model_name} on {self.device}. Qdrant connected at {settings.QDRANT_URL}")
-
-    def _create_qdrant_collection(self):
-        """Create Qdrant collection if not exists"""
-        if not self.qdrant_client.has_collection(self.collection_name):
-            self.qdrant_client.create_collection(
-                collection_name=self.collection_name,
-                vectors_config=VectorParams(size=768, distance=Distance.COSINE)
-            )
-            logger.info(f"Created Qdrant collection: {self.collection_name}")
+        logger.info(f"Text Embedding Service initialized with {model_name} on {self.device}")
     
     def _load_model(self):
         """Load embedding model"""
