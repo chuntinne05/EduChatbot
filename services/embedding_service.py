@@ -18,6 +18,7 @@ import time
 from datetime import datetime, timezone
 from tqdm import tqdm
 from config.settings import settings
+from transformers import CLIPProcessor, CLIPModel
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -39,12 +40,22 @@ class TextEmbeddingService:
         """
         self.db_url = db_url
         self.model_name = model_name
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(self.device)
+        self.clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
         self.batch_size = batch_size
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')        
         self.engine = create_engine(db_url)
         self._load_model()
         
         logger.info(f"Text Embedding Service initialized with {model_name} on {self.device}")
+
+    def get_clip_text_embedding(self, text: str):
+        """Sinh embedding từ text cho CLIP"""
+        inputs = self.clip_processor(text=[text], return_tensors="pt", padding=True).to(self.device)
+        with torch.no_grad():
+            text_embeds = self.clip_model.get_text_features(**inputs)
+        text_embeds = torch.nn.functional.normalize(text_embeds, p=2, dim=-1)
+        return text_embeds.cpu().numpy()[0].tolist()
     
     def _load_model(self):
         """Load embedding model"""

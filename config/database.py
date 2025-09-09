@@ -1,106 +1,103 @@
-"""
-Database configuration và connection management.
-SQLAlchemy setup với connection pooling.
-"""
+from typing import List, Optional
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+from config.settings import settings  
+from contextlib import asynccontextmanager
 
-from sqlalchemy import create_engine, event, text
-from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.pool import StaticPool
-from contextlib import contextmanager
-from typing import Generator
-import logging
+# Tạo engine
+engine = create_async_engine(settings.DATABASE_URL, echo=False, future=True)
 
-from .settings import settings
+# Tạo session factory
+AsyncSessionLocal = sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autoflush=False,
+    autocommit=False
+)
 
-logger = logging.getLogger(__name__)
+@asynccontextmanager
+async def get_async_session():
+    async with AsyncSessionLocal() as session:
+        yield session
 
-class DatabaseManager:
-    """Database connection manager"""
-    
-    def __init__(self):
-        self.engine = None
-        self.SessionLocal = None
-        self._initialize_database()
-    
-    def _initialize_database(self):
-        """Initialize database connection"""
-        try:
-            # Create SQLAlchemy engine với connection pooling
-            self.engine = create_engine(
-                settings.DATABASE_URL,
-                pool_size=20,           # Số connection tối đa trong pool
-                max_overflow=30,        # Số connection overflow
-                pool_recycle=3600,      # Recycle connection sau 1 giờ
-                pool_pre_ping=True,     # Test connection trước khi sử dụng
-                echo=False              # Set True để log SQL queries
-            )
-            
-            # Tạo session factory
-            self.SessionLocal = sessionmaker(
-                autocommit=False,
-                autoflush=False,
-                bind=self.engine
-            )
-            
-            # Test connection
-            with self.engine.connect() as conn:
-                conn.execute(text("SELECT 1"))
-            
-            logger.info("Database connection initialized successfully")
-            
-        except Exception as e:
-            logger.error(f"Failed to initialize database: {e}")
-            raise
-    
-    @contextmanager
-    def get_session(self) -> Generator[Session, None, None]:
-        """Context manager để get database session"""
-        session = self.SessionLocal()
-        try:
-            yield session
-            session.commit()
-        except Exception as e:
-            session.rollback()
-            logger.error(f"Database session error: {e}")
-            raise
-        finally:
-            session.close()
-    
-    def create_tables(self):
-        """Tạo tất cả tables trong database"""
-        from models.database_models import Base
-        try:
-            Base.metadata.create_all(bind=self.engine)
-            logger.info("Database tables created successfully")
-        except Exception as e:
-            logger.error(f"Failed to create tables: {e}")
-            raise
-    
-    def drop_tables(self):
-        """Drop tất cả tables (chỉ dùng cho development)"""
-        from models.database_models import Base
-        try:
-            Base.metadata.drop_all(bind=self.engine)
-            logger.info("Database tables dropped successfully")
-        except Exception as e:
-            logger.error(f"Failed to drop tables: {e}")
-            raise
-    
-    def get_engine(self):
-        """Get SQLAlchemy engine"""
-        return self.engine
+async def semantic_search_text(
+    db: AsyncSession,
+    query_embedding: List[float],
+    similarity_threshold: float = 0.8,
+    category: Optional[str] = None,
+    location: Optional[str] = None,
+    source_type: Optional[str] = None,
+    limit: int = 10,
+):
+    params = {"embedding": query_embedding}
+    filters = []
+    if category:
+        filters.append("tc.category = :category")
+        params["category"] = category
+    if location:
+        filters.append("tc.location = :location")
+        params["location"] = location
+    if source_type:
+        filters.append("tc.source_type = :source_type")
+        params["source_type"] = source_type
+    filters.append("tc.embedding <=> :embedding < :threshold")
+    params["threshold"] = 1 - similarity_threshold
+    filter_clause = " AND ".join(filters)
 
-# Singleton instance
-db_manager = DatabaseManager()
+    query = text(f"""
+        SELECT tc.id, tc.text, tc.embedding <=> :embedding as distance
+        FROM text_chunks tc
+        WHERE {filter_clause}
+        ORDER BY distance
+        LIMIT :limit
+    """)
+    params["limit"] = limit
+    result = await db.execute(query, params)
+    return result.fetchall()
 
-# Convenience functions
-def get_db_session():
-    """Get database session - để sử dụng trong dependency injection"""
-    return db_manager.get_session()
+async def semantic_search_images(
+    db: AsyncSession,
+    query_embedding: List[float],
+    similarity_threshold: float = 0.8,
+    category: Optional[str] = None,
+    location: Optional[str] = None,
+    limit: int = 10,
+):
+    params = {"embedding": query_embedding}
+    filters = []
+    if category:
+        filters.append("ie.category = :category")
+        params["category"] = category
+    if location:
+        filters.append("ie.location = :location")
+        params["location"] = location
+    filters.append("ie.embedding <=> :embedding < :threshold")
+    params["threshold"] = 1 - similarity_threshold
+    filter_clause = " AND ".join(filters)
 
-def init_db():
-    """Initialize database với tables"""
-    db_manager.create_tables()
+    query = text(f"""
+        SELECT ie.id, ie.url, ie.embedding <=> :embedding as distance
+        FROM image_embeddings ie
+        WHERE {filter_clause}
+        ORDER BY distance
+        LIMIT :limit
+    """)
+    params["limit"] = limit
+    result = await db.execute(query, params)
+    return result.fetchall()
 
-def drop_db():
-    db_manager.drop_tables()
+async def find_related_images_for_text(
+    db: AsyncSession,
+    text_chunk_ids: List[int],
+):
+    query = text("""
+        SELECT ie.*
+        FROM image_embeddings ie
+        JOIN chunk_image_links cml ON ie.id = cml.image_id
+        WHERE cml.text_chunk_id = ANY(:text_ids)
+    """)
+    params = {"text_ids": text_chunk_ids}
+    result = await db.execute(query, params)
+    return result.fetchall()
